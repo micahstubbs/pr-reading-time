@@ -1,0 +1,86 @@
+name: PR Reading Time Estimator
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  estimate-reading-time:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Get PR diff stats
+        id: diff-stats
+        run: |
+          # Fetch the PR diff statistics
+          gh api repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }} \
+            --jq '.additions, .deletions, .changed_files' > pr-stats.txt
+
+          additions=$(sed -n '1p' pr-stats.txt)
+          deletions=$(sed -n '2p' pr-stats.txt)
+          changed_files=$(sed -n '3p' pr-stats.txt)
+
+          echo "additions=$additions" >> $GITHUB_OUTPUT
+          echo "deletions=$deletions" >> $GITHUB_OUTPUT
+          echo "changed_files=$changed_files" >> $GITHUB_OUTPUT
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Get file changes details
+        id: file-details
+        run: |
+          # Get detailed file changes
+          gh api repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/files \
+            --paginate \
+            --jq '.[] | "\(.filename):\(.changes):\(.additions):\(.deletions)"' > file-changes.txt
+
+          echo "File changes saved to file-changes.txt"
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Calculate reading time
+        id: calculate-time
+        run: |
+          node scripts/calculate-reading-time.js \
+            --additions "${{ steps.diff-stats.outputs.additions }}" \
+            --deletions "${{ steps.diff-stats.outputs.deletions }}" \
+            --files "${{ steps.diff-stats.outputs.changed_files }}" \
+            --file-details file-changes.txt
+
+      - name: Update PR description
+        if: success()
+        run: |
+          # Read the calculated time
+          reading_time=$(cat reading-time.txt)
+
+          # Get current PR description
+          gh api repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }} \
+            --jq '.body // ""' > current-description.txt
+
+          # Update description with reading time
+          node scripts/update-pr-description.js \
+            --time "$reading_time" \
+            --description-file current-description.txt > new-description.txt
+
+          # Update the PR
+          gh api repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }} \
+            --method PATCH \
+            --field body="$(cat new-description.txt)"
+
+          echo "✅ PR description updated with reading time: $reading_time"
+        env:
+          GH_TOKEN: ${{ github.token }}
