@@ -36,13 +36,6 @@ function findInsertPosition(description) {
       for (let j = i + 1; j < lines.length; j++) {
         const currentLine = lines[j].trim();
 
-        // Check if it's already a reading time indicator
-        if (READING_TIME_PATTERN.test(currentLine)) {
-          // Replace existing indicator
-          lines[j] = READING_TIME_INDICATOR;
-          return lines.join('\n');
-        }
-
         // If we hit another header, insert after the last content line
         if (/^#{1,6}\s/.test(currentLine)) {
           insertIndex = lastContentIndex + 1;
@@ -92,13 +85,7 @@ function findInsertPosition(description) {
     }
   }
 
-  // No header found, check if description already has reading time
-  if (READING_TIME_PATTERN.test(description)) {
-    // Replace existing
-    return description.replace(READING_TIME_PATTERN, READING_TIME_INDICATOR);
-  }
-
-  // No header and no existing time, add at the beginning
+  // No header found, add at the beginning
   if (description.trim()) {
     return `${READING_TIME_INDICATOR}\n\n${description}`;
   } else {
@@ -111,13 +98,40 @@ function updatePRDescription(currentDescription) {
   // Handle null/undefined description
   const description = currentDescription || '';
 
-  // Check if reading time already exists and update it
+  // First, remove any existing reading time indicator
+  let cleanedDescription = description;
   if (READING_TIME_PATTERN.test(description)) {
-    return description.replace(READING_TIME_PATTERN, READING_TIME_INDICATOR);
+    // Remove the existing indicator and any surrounding empty lines
+    const lines = description.split('\n');
+    const filteredLines = [];
+    let skipNextEmpty = false;
+
+    for (let i = 0; i < lines.length; i++) {
+      if (READING_TIME_PATTERN.test(lines[i])) {
+        // Skip this line
+        skipNextEmpty = true;
+        // Also check if previous line in filteredLines is empty and remove it
+        if (filteredLines.length > 0 && !filteredLines[filteredLines.length - 1].trim()) {
+          filteredLines.pop();
+        }
+        continue;
+      }
+
+      // Skip empty line immediately after reading time
+      if (skipNextEmpty && !lines[i].trim()) {
+        skipNextEmpty = false;
+        continue;
+      }
+
+      skipNextEmpty = false;
+      filteredLines.push(lines[i]);
+    }
+
+    cleanedDescription = filteredLines.join('\n');
   }
 
-  // Find position and insert
-  return findInsertPosition(description);
+  // Now insert at the correct position
+  return findInsertPosition(cleanedDescription);
 }
 
 // Main execution
