@@ -1,0 +1,23 @@
+name: PR Reading Time
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  pull-requests: write
+
+jobs:
+  reading-time:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: micahstubbs/pr-reading-time@v1
+        with:
+          # Optional: Use a different token
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+          # Optional: Post as comment instead of updating description
+          comment-instead: 'false'
+
+          # Optional: Disable updating PR description
+          update-description: 'true'

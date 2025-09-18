@@ -1,0 +1,15 @@
+name: PR Reading Time
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  pull-requests: write
+
+jobs:
+  reading-time:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: micahstubbs/pr-reading-time@v1
+        # That's it! No configuration needed for basic usage

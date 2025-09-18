@@ -2,6 +2,34 @@
 
 A GitHub Action that automatically estimates and displays the reading/review time for pull requests.
 
+## 🚀 Quick Start (30 seconds)
+
+### Option 1: One-Line Setup
+```bash
+curl -fsSL https://raw.githubusercontent.com/micahstubbs/pr-reading-time/main/setup.sh | bash
+```
+
+### Option 2: GitHub Action (Recommended)
+```yaml
+# .github/workflows/pr-reading-time.yml
+name: PR Reading Time
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  pull-requests: write
+
+jobs:
+  reading-time:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: micahstubbs/pr-reading-time@v1
+```
+
+That's it! The action will now automatically add reading time estimates to all PRs.
+
 ## Features
 
 - 🕐 **Automatic Time Estimation**: Calculates review time based on PR complexity
@@ -10,23 +38,32 @@ A GitHub Action that automatically estimates and displays the reading/review tim
 - 🔄 **Auto-Updates**: Recalculates when PR is updated
 - 📊 **Intelligent Calculation**: Considers file complexity and security-critical code
 
-## Setup
+## Configuration Options
 
-1. **Add the workflow to your repository**:
+### Basic Usage
+No configuration needed! Just use the action as shown above.
 
-   Copy `.github/workflows/pr-reading-time.yml` to your repository's `.github/workflows/` directory.
+### Advanced Options
+```yaml
+- uses: micahstubbs/pr-reading-time@v1
+  with:
+    # Post as comment instead of updating description
+    comment-instead: 'true'
 
-2. **Copy the scripts**:
+    # Use custom GitHub token
+    github-token: ${{ secrets.CUSTOM_TOKEN }}
 
-   Copy the `scripts/` directory to your repository root:
-   - `calculate-reading-time.js` - Calculates the reading time
-   - `update-pr-description.js` - Updates PR description
+    # Disable description updates
+    update-description: 'false'
+```
 
-3. **Ensure permissions**:
+### Manual Setup (if not using the action)
 
-   The workflow uses the default `GITHUB_TOKEN` which needs:
-   - `contents: read` - To fetch PR diff
-   - `pull-requests: write` - To update PR description
+If you prefer to copy the files directly:
+
+1. Copy `.github/workflows/pr-reading-time.yml` to your repository
+2. Copy the `scripts/` directory to your repository root
+3. Ensure the workflow has `pull-requests: write` permission
 
 ## How It Works
 
