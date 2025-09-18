@@ -37,6 +37,7 @@ runs:
       uses: actions/checkout@v4
       with:
         repository: micahstubbs/pr-reading-time
+        ref: v1
         path: .pr-reading-time
         sparse-checkout: scripts
         sparse-checkout-cone-mode: false
