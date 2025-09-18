@@ -89,7 +89,7 @@ jobs:
 ### Edge Cases
 
 1. **Empty PRs**: Display "< 1 minute"
-2. **Very large PRs**: Cap at "60+ minutes" with warning
+2. **Very large PRs**: Display actual time (e.g., "~3 hours 45 minutes")
 3. **Binary files**: Exclude from calculation
 4. **Already has reading time**: Update existing estimate
 5. **No header in description**: Add estimate at the beginning

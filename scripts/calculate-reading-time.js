@@ -136,6 +136,7 @@ function formatReadingTime(minutes) {
     const rounded = Math.round(minutes / 5) * 5;  // Round to nearest 5
     return `~${rounded} minutes`;
   } else {
+    // Always show actual time, no matter how large
     const hours = Math.floor(minutes / 60);
     const remainingMinutes = Math.round((minutes % 60) / 15) * 15;  // Round to nearest 15
     if (remainingMinutes === 0) {

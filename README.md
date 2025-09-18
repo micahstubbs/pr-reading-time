@@ -111,7 +111,6 @@ chmod +x test-scripts.sh
 
 - Estimates are approximations based on line counts
 - Binary files are excluded from calculation
-- Maximum display is "60+ minutes" for very large PRs
 - Requires Node.js 20+ in the GitHub Action environment
 
 ## Contributing
