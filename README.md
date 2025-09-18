@@ -79,6 +79,16 @@ The action triggers on PR events (opened, synchronize, reopened) and:
    - **Critical files** (auth, security): 1.5x multiplier
 4. Updates PR description with the estimate
 
+## Live Examples
+
+See the PR Reading Time action in use on real pull requests:
+
+- [**Small PR (< 1 minute)**](https://github.com/micahstubbs/pr-reading-time-example/pull/1) - Documentation update with 12 lines changed
+- [**Medium PR (~5 minutes)**](https://github.com/micahstubbs/pr-reading-time-example/pull/2) - Feature addition with 134 lines across 3 files
+- [**Large PR (~20 minutes)**](https://github.com/micahstubbs/pr-reading-time-example/pull/3) - Major refactoring with 830 lines across 10 files
+
+Each example shows how the reading time estimate appears after the PR description summary, properly formatted with appropriate spacing.
+
 ## Example Output
 
 Your PR description will be updated like this:
