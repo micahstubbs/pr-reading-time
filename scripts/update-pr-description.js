@@ -29,32 +29,65 @@ function findInsertPosition(description) {
     if (/^#{1,6}\s/.test(line.trim())) {
       headerFound = true;
 
-      // Find the next non-empty line after the header
-      for (let j = i + 1; j <= lines.length; j++) {
-        if (j === lines.length) {
-          // End of description, insert here
-          insertIndex = j;
+      // Look for the first paragraph/content after the header
+      let contentFound = false;
+      let lastContentIndex = i;
+
+      for (let j = i + 1; j < lines.length; j++) {
+        const currentLine = lines[j].trim();
+
+        // Check if it's already a reading time indicator
+        if (READING_TIME_PATTERN.test(currentLine)) {
+          // Replace existing indicator
+          lines[j] = READING_TIME_INDICATOR;
+          return lines.join('\n');
+        }
+
+        // If we hit another header, insert after the last content line
+        if (/^#{1,6}\s/.test(currentLine)) {
+          insertIndex = lastContentIndex + 1;
           break;
         }
 
-        const nextLine = lines[j].trim();
-
-        // If we find content (not empty line), insert before it
-        if (nextLine) {
-          // Check if it's already a reading time indicator
-          if (READING_TIME_PATTERN.test(nextLine)) {
-            // Replace existing indicator
-            lines[j] = READING_TIME_INDICATOR;
-            return lines.join('\n');
-          }
-          // Insert before this content
-          insertIndex = j;
+        // Track non-empty lines as content
+        if (currentLine && !contentFound) {
+          contentFound = true;
+          lastContentIndex = j;
+        } else if (currentLine) {
+          lastContentIndex = j;
+        } else if (contentFound && !currentLine) {
+          // Found empty line after content, this is where we insert
+          insertIndex = j + 1;
           break;
+        }
+
+        // If we reach the end
+        if (j === lines.length - 1) {
+          insertIndex = lines.length;
         }
       }
 
-      // Insert the reading time indicator
-      lines.splice(insertIndex, 0, '', READING_TIME_INDICATOR);
+      // If we found content but no good insertion point, add after the content
+      if (contentFound && insertIndex === 0) {
+        insertIndex = lastContentIndex + 1;
+      } else if (!contentFound) {
+        // No content after header, insert right after header with spacing
+        insertIndex = i + 1;
+      }
+
+      // Insert the reading time indicator with proper spacing
+      if (insertIndex === lines.length) {
+        // At the end of the file
+        lines.push('');
+        lines.push(READING_TIME_INDICATOR);
+      } else if (lines[insertIndex - 1] && lines[insertIndex - 1].trim()) {
+        // Previous line has content, add blank line before indicator
+        lines.splice(insertIndex, 0, '', READING_TIME_INDICATOR, '');
+      } else {
+        // Already have spacing
+        lines.splice(insertIndex, 0, READING_TIME_INDICATOR, '');
+      }
+
       return lines.join('\n');
     }
   }
