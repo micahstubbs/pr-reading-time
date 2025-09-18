@@ -120,7 +120,7 @@ runs:
         gh pr comment ${{ github.event.pull_request.number }} \
           --body "## 📖 PR Reading Time Estimate
 
-        **Estimated review time: $reading_time**
+        Estimated review time: $reading_time
 
         This estimate is based on:
         - 📝 ${{ steps.pr-stats.outputs.changed_files }} files changed
