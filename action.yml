@@ -118,11 +118,11 @@ runs:
         reading_time="${{ steps.calculate.outputs.time }}"
 
         gh pr comment ${{ github.event.pull_request.number }} \
-          --body "## 📖 PR Reading Time Estimate
+          --body "## 📖 PR Reading Time
 
-        Estimated review time: $reading_time
+        Review time: $reading_time
 
-        This estimate is based on:
+        This is based on:
         - 📝 ${{ steps.pr-stats.outputs.changed_files }} files changed
         - ➕ ${{ steps.pr-stats.outputs.additions }} additions
         - ➖ ${{ steps.pr-stats.outputs.deletions }} deletions" \

@@ -86,9 +86,9 @@ Your PR description will be updated like this:
 ```markdown
 ## Fix authentication flow
 
-**📖 Estimated review time: ~15 minutes**
-
 This PR addresses the critical authentication bug...
+
+**📖 Review time: ~15 minutes**
 ```
 
 ## Calculation Formula

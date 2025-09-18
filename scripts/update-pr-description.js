@@ -13,8 +13,8 @@ const readingTime = getArg('time') || '~5 minutes';
 const descriptionFile = getArg('description-file');
 
 // Reading time badge/indicator
-const READING_TIME_INDICATOR = `**📖 Estimated review time: ${readingTime}**`;
-const READING_TIME_PATTERN = /\*\*📖 Estimated review time:.*?\*\*/;
+const READING_TIME_INDICATOR = `**📖 Review time: ${readingTime}**`;
+const READING_TIME_PATTERN = /\*\*📖 (Estimated review|Review) time:.*?\*\*/;
 
 // Function to find the position after the first header
 function findInsertPosition(description) {
