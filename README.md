@@ -156,4 +156,4 @@ Feel free to submit issues and PRs to improve the estimation accuracy!
 
 ## License
 
-MIT
+Apache-2.0
