@@ -21,6 +21,11 @@ inputs:
     required: false
     default: 'false'
 
+  include-docs:
+    description: 'Include markdown files in reading time estimate'
+    required: false
+    default: 'false'
+
 outputs:
   reading-time:
     description: 'The calculated reading time'
@@ -78,11 +83,17 @@ runs:
       shell: bash
       run: |
         cd .pr-reading-time
+        INCLUDE_DOCS_FLAG=""
+        if [ "${{ inputs.include-docs }}" == "true" ]; then
+          INCLUDE_DOCS_FLAG="--include-docs"
+        fi
+
         node scripts/calculate-reading-time.js \
           --additions "${{ steps.pr-stats.outputs.additions }}" \
           --deletions "${{ steps.pr-stats.outputs.deletions }}" \
           --files "${{ steps.pr-stats.outputs.changed_files }}" \
-          --file-details /tmp/file-changes.txt
+          --file-details /tmp/file-changes.txt \
+          $INCLUDE_DOCS_FLAG
 
         reading_time=$(cat reading-time.txt)
         total_changes=$(({{ steps.pr-stats.outputs.additions }} + {{ steps.pr-stats.outputs.deletions }}))

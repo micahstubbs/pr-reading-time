@@ -10,10 +10,15 @@ const getArg = (name) => {
   return index !== -1 && args[index + 1] ? args[index + 1] : null;
 };
 
+const getBoolArg = (name) => {
+  return args.includes(`--${name}`);
+};
+
 const additions = parseInt(getArg('additions') || '0');
 const deletions = parseInt(getArg('deletions') || '0');
 const changedFiles = parseInt(getArg('files') || '0');
 const fileDetailsPath = getArg('file-details');
+const includeDocs = getBoolArg('include-docs');  // Default false
 
 // Reading speed constants (lines per minute)
 const READING_SPEEDS = {
@@ -73,7 +78,9 @@ function calculateFileReadingTime(filename, changes, additions, deletions) {
 // Main calculation
 function calculateTotalReadingTime() {
   let totalMinutes = 0;
+  let docsMinutes = 0;
   const fileStats = [];
+  const docsStats = [];
 
   // Read file details if provided
   if (fileDetailsPath && fs.existsSync(fileDetailsPath)) {
@@ -86,15 +93,27 @@ function calculateTotalReadingTime() {
       const fileDels = parseInt(dels || '0');
 
       const fileTime = calculateFileReadingTime(filename, fileChanges, fileAdds, fileDels);
-      totalMinutes += fileTime;
 
-      fileStats.push({
+      const fileStat = {
         filename,
         changes: fileChanges,
         additions: fileAdds,
         deletions: fileDels,
         minutes: fileTime
-      });
+      };
+
+      // Separate markdown files from code files
+      if (FILE_PATTERNS.documentation.test(filename) && filename.endsWith('.md')) {
+        docsMinutes += fileTime;
+        docsStats.push(fileStat);
+        if (includeDocs) {
+          totalMinutes += fileTime;
+          fileStats.push(fileStat);
+        }
+      } else {
+        totalMinutes += fileTime;
+        fileStats.push(fileStat);
+      }
     }
   } else {
     // Fallback to simple calculation if no file details
@@ -116,12 +135,15 @@ function calculateTotalReadingTime() {
 
   return {
     totalMinutes,
+    docsMinutes,
     fileStats,
+    docsStats,
     summary: {
       totalFiles: changedFiles,
       totalAdditions: additions,
       totalDeletions: deletions,
-      totalChanges: additions + deletions
+      totalChanges: additions + deletions,
+      docsExcluded: !includeDocs && docsStats.length > 0
     }
   };
 }
@@ -154,6 +176,12 @@ function generateBreakdown(result) {
   lines.push(`   Additions: +${result.summary.totalAdditions}`);
   lines.push(`   Deletions: -${result.summary.totalDeletions}`);
 
+  // Show documentation time separately if excluded
+  if (result.summary.docsExcluded && result.docsStats.length > 0) {
+    const docsTime = formatReadingTime(result.docsMinutes);
+    lines.push(`   Documentation (${result.docsStats.length} .md files): ${docsTime} [excluded from total]`);
+  }
+
   if (result.fileStats.length > 0 && result.fileStats.length <= 10) {
     lines.push('   Top files by review time:');
     const topFiles = result.fileStats
@@ -180,6 +208,9 @@ try {
   // Log detailed breakdown to console
   console.log(generateBreakdown(result));
   console.log(`\n✅ Estimated reading time: ${formattedTime}`);
+  if (!includeDocs && result.docsStats.length > 0) {
+    console.log(`   (Excluding ${result.docsStats.length} markdown file${result.docsStats.length > 1 ? 's' : ''})`);
+  }
 
   // Also save detailed stats for potential future use
   fs.writeFileSync('reading-stats.json', JSON.stringify(result, null, 2));
