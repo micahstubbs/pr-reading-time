@@ -35,7 +35,9 @@ const FILE_PATTERNS = {
   documentation: /\.(md|txt|rst|adoc)$/i,
   test: /(\.(test|spec)\.|__(tests|specs)__|\/tests?\/|\/specs?\/).*\.(js|jsx|ts|tsx|py|java|go|rs|cpp|c)$/i,
   config: /\.(json|yaml|yml|toml|ini|cfg|conf|xml|properties)$/i,
-  generated: /(\.min\.|\.map$|dist\/|build\/|node_modules\/|vendor\/|\.lock$)/i,
+  generated: /(\.min\.|\.map$|dist\/|build\/|node_modules\/|vendor\/)$/i,
+  lockFiles: /(package-lock\.json|yarn\.lock|pnpm-lock\.yaml|composer\.lock|Gemfile\.lock|Pipfile\.lock|poetry\.lock)$/i,
+  dataFiles: /\.(json|csv)$/i,
   critical: /(auth|security|crypto|password|token|secret|key|private)/i,
   frontend: /\.(jsx?|tsx?|vue|svelte)$/i,
   backend: /\.(py|java|go|rs|php|rb|scala|kt)$/i,
@@ -44,13 +46,24 @@ const FILE_PATTERNS = {
 
 // Calculate reading time for a specific file
 function calculateFileReadingTime(filename, changes, additions, deletions) {
+  // Skip lock files entirely
+  if (FILE_PATTERNS.lockFiles.test(filename)) {
+    return 0;
+  }
+
   let speed = READING_SPEEDS.default;
   let complexity = 1.0;
+  let totalLines = additions + deletions;
+
+  // Cap .json and .csv files at 80 lines for reading time calculation
+  if (FILE_PATTERNS.dataFiles.test(filename) && totalLines > 80) {
+    totalLines = 80;
+  }
 
   // Determine file type and base reading speed
   if (FILE_PATTERNS.documentation.test(filename)) {
     // For docs, estimate words (roughly 10 chars per word)
-    const words = (additions * 10) / 10;
+    const words = (totalLines * 10) / 10;
     return words / READING_SPEEDS.documentation;
   } else if (FILE_PATTERNS.generated.test(filename)) {
     speed = READING_SPEEDS.generated;
@@ -71,7 +84,6 @@ function calculateFileReadingTime(filename, changes, additions, deletions) {
     complexity *= 1.2;  // Large files take proportionally longer
   }
 
-  const totalLines = additions + deletions;
   return (totalLines / speed) * complexity;
 }
 
@@ -79,6 +91,7 @@ function calculateFileReadingTime(filename, changes, additions, deletions) {
 function calculateTotalReadingTime() {
   let totalMinutes = 0;
   let docsMinutes = 0;
+  let skippedFiles = [];
   const fileStats = [];
   const docsStats = [];
 
@@ -92,6 +105,12 @@ function calculateTotalReadingTime() {
       const fileAdds = parseInt(adds || '0');
       const fileDels = parseInt(dels || '0');
 
+      // Skip lock files
+      if (FILE_PATTERNS.lockFiles.test(filename)) {
+        skippedFiles.push(filename);
+        continue;
+      }
+
       const fileTime = calculateFileReadingTime(filename, fileChanges, fileAdds, fileDels);
 
       const fileStat = {
@@ -101,6 +120,12 @@ function calculateTotalReadingTime() {
         deletions: fileDels,
         minutes: fileTime
       };
+
+      // Note if file was capped
+      if (FILE_PATTERNS.dataFiles.test(filename) && (fileAdds + fileDels) > 80) {
+        fileStat.capped = true;
+        fileStat.originalLines = fileAdds + fileDels;
+      }
 
       // Separate markdown files from code files
       if (FILE_PATTERNS.documentation.test(filename) && filename.endsWith('.md')) {
@@ -138,12 +163,14 @@ function calculateTotalReadingTime() {
     docsMinutes,
     fileStats,
     docsStats,
+    skippedFiles,
     summary: {
       totalFiles: changedFiles,
       totalAdditions: additions,
       totalDeletions: deletions,
       totalChanges: additions + deletions,
-      docsExcluded: !includeDocs && docsStats.length > 0
+      docsExcluded: !includeDocs && docsStats.length > 0,
+      filesSkipped: skippedFiles.length
     }
   };
 }
@@ -176,6 +203,11 @@ function generateBreakdown(result) {
   lines.push(`   Additions: +${result.summary.totalAdditions}`);
   lines.push(`   Deletions: -${result.summary.totalDeletions}`);
 
+  // Show skipped files if any
+  if (result.skippedFiles.length > 0) {
+    lines.push(`   Lock files excluded: ${result.skippedFiles.length} file${result.skippedFiles.length > 1 ? 's' : ''}`);
+  }
+
   // Show documentation time separately if excluded
   if (result.summary.docsExcluded && result.docsStats.length > 0) {
     const docsTime = formatReadingTime(result.docsMinutes);
@@ -190,7 +222,11 @@ function generateBreakdown(result) {
 
     for (const file of topFiles) {
       const time = formatReadingTime(file.minutes);
-      lines.push(`   • ${path.basename(file.filename)}: ${time}`);
+      let label = path.basename(file.filename);
+      if (file.capped) {
+        label += ` (capped from ${file.originalLines} lines)`;
+      }
+      lines.push(`   • ${label}: ${time}`);
     }
   }
 
